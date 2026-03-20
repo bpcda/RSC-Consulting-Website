@@ -38,6 +38,14 @@ const Footer = () => {
           <p className="font-body text-xs text-muted-foreground tracking-wide">
             Registered office: 27 Old Gloucester Street, London, WC1N 3AX, United Kingdom
           </p>
+          <div className="flex justify-center gap-4 mt-4">
+            <Link to="/privacy" className="font-body text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 tracking-wide underline underline-offset-2">
+              Privacy Policy
+            </Link>
+            <Link to="/cookies" className="font-body text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 tracking-wide underline underline-offset-2">
+              Cookie Policy
+            </Link>
+          </div>
           <p className="font-body text-xs text-muted-foreground tracking-wide mt-4">
             © {new Date().getFullYear()} RSC Consulting Ltd. All rights reserved.
           </p>
