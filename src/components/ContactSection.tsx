@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
+import { supabase } from "@/lib/supabase";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -13,6 +14,8 @@ const ContactSection = () => {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -23,8 +26,10 @@ const ContactSection = () => {
     return () => observer.disconnect();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
+
     const result = contactSchema.safeParse(form);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -34,7 +39,26 @@ const ContactSection = () => {
       setErrors(fieldErrors);
       return;
     }
+
     setErrors({});
+    setSubmitting(true);
+
+    const { error } = await supabase
+      .from("contact_submissions")
+      .insert({
+        name: result.data.name,
+        email: result.data.email,
+        message: result.data.message,
+      });
+
+    setSubmitting(false);
+
+    if (error) {
+      setSubmitError("Something went wrong. Please try again later.");
+      console.error("Supabase insert error:", error.message);
+      return;
+    }
+
     setSubmitted(true);
   };
 
@@ -69,6 +93,7 @@ const ContactSection = () => {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className={inputClass}
                 maxLength={100}
+                disabled={submitting}
               />
               {errors.name && <p className="text-destructive text-xs mt-1 font-body">{errors.name}</p>}
             </div>
@@ -80,6 +105,7 @@ const ContactSection = () => {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className={inputClass}
                 maxLength={255}
+                disabled={submitting}
               />
               {errors.email && <p className="text-destructive text-xs mt-1 font-body">{errors.email}</p>}
             </div>
@@ -91,14 +117,21 @@ const ContactSection = () => {
                 rows={4}
                 className={`${inputClass} resize-none`}
                 maxLength={2000}
+                disabled={submitting}
               />
               {errors.message && <p className="text-destructive text-xs mt-1 font-body">{errors.message}</p>}
             </div>
+
+            {submitError && (
+              <p className="text-destructive text-sm font-body text-center">{submitError}</p>
+            )}
+
             <button
               type="submit"
-              className="w-full font-body text-sm font-medium tracking-widest uppercase border border-foreground text-foreground py-3 hover:bg-foreground hover:text-background transition-all duration-300 active:scale-[0.97]"
+              disabled={submitting}
+              className="w-full font-body text-sm font-medium tracking-widest uppercase border border-foreground text-foreground py-3 hover:bg-foreground hover:text-background transition-all duration-300 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none"
             >
-              Send message
+              {submitting ? "Sending…" : "Send message"}
             </button>
           </form>
         )}
