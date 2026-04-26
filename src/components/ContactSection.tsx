@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
-import { supabase } from "@/lib/supabase";
+import {
+  databases,
+  APPWRITE_DATABASE_ID,
+  CONTACT_COLLECTION_ID,
+  ID,
+} from "@/lib/appwrite";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -43,23 +48,24 @@ const ContactSection = () => {
     setErrors({});
     setSubmitting(true);
 
-    const { error } = await supabase
-      .from("contact_submissions")
-      .insert({
-        name: result.data.name,
-        email: result.data.email,
-        message: result.data.message,
-      });
-
-    setSubmitting(false);
-
-    if (error) {
+    try {
+      await databases.createDocument(
+        APPWRITE_DATABASE_ID,
+        CONTACT_COLLECTION_ID,
+        ID.unique(),
+        {
+          name: result.data.name,
+          email: result.data.email,
+          message: result.data.message,
+        }
+      );
+      setSubmitted(true);
+    } catch (err) {
       setSubmitError("Something went wrong. Please try again later.");
-      console.error("Supabase insert error:", error.message);
-      return;
+      console.error("Appwrite insert error:", err);
+    } finally {
+      setSubmitting(false);
     }
-
-    setSubmitted(true);
   };
 
   const inputClass =
